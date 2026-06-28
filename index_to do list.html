@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workspace Manager Premium</title>
+    
+    <!-- Bootstrap 5.3 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Google Fonts: Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        :root {
+            --bg-workspace: #f8fafc;
+            --surface-card: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            
+            --primary: #4f46e5;
+            --primary-light: #e0e7ff;
+            --secondary: #0ea5e9;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --warning-light: #fef3c7;
+            --danger: #ef4444;
+            
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            
+            --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        body {
+            background-color: var(--bg-workspace);
+            color: var(--text-main);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+        /* Navbar & Stats */
+        .app-navbar {
+            background-color: var(--surface-card);
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 24px;
+        }
+
+        .stat-card {
+            background-color: var(--surface-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 12px 18px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .stat-icon {
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        /* Kanban Column - Color Coded */
+        .kanban-column {
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            min-height: 650px;
+            display: flex;
+            flex-direction: column;
+            border: 2px solid transparent; 
+            transition: all 0.2s ease;
+        }
+        
+        #todo-col { background-color: #eff6ff; }
+        #todo-col.drag-over { background-color: #dbeafe; border-color: var(--primary); border-style: dashed; }
+        
+        #inprogress-col { background-color: #fff7ed; }
+        #inprogress-col.drag-over { background-color: #ffedd5; border-color: var(--warning); border-style: dashed; }
+        
+        #revisi-col { background-color: #fef2f2; }
+        #revisi-col.drag-over { background-color: #fee2e2; border-color: var(--danger); border-style: dashed; }
+        
+        #done-col { background-color: #f0fdf4; }
+        #done-col.drag-over { background-color: #dcfce3; border-color: var(--success); border-style: dashed; }
+
+        .column-title-area { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .column-badge { background-color: #ffffff; border: 1px solid var(--border-color); font-size: 0.75rem; font-weight: 700; padding: 4px 10px; border-radius: 20px; }
+
+        /* Task Card */
+        .task-card {
+            background-color: var(--surface-card);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: var(--shadow-sm);
+            cursor: grab;
+            transition: transform 0.2s;
+        }
+        .task-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: #cbd5e1; }
+        .task-card:active { cursor: grabbing; }
+        .task-card.dragging { opacity: 0.4; transform: scale(0.95); border: 2px dashed var(--primary); }
+
+        .project-tag { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; padding: 3px 8px; border-radius: 4px; display: inline-block; }
+        .member-avatar { width: 26px; height: 26px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 0.65rem; font-weight: 700; color: white; }
+
+        /* Detail Box (SPV Notes) */
+        .spv-note-box {
+            background-color: var(--warning-light);
+            border-left: 3px solid var(--warning);
+            padding: 8px 10px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            color: #92400e;
+            margin-bottom: 10px;
+        }
+
+        /* Image Display Styles */
+        .task-image {
+            width: 100%;
+            max-height: 140px;
+            object-fit: cover;
+            border-radius: var(--radius-sm);
+            margin-bottom: 10px;
+            border: 1px solid var(--border-color);
+        }
+
+        .task-image-clickable {
+            cursor: zoom-in;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .task-image-clickable:hover {
+            transform: scale(1.02);
+            box-shadow: var(--shadow-md);
+        }
+
+        /* Image Gallery for Multiple Images */
+        .gallery-container {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+            margin-bottom: 4px;
+        }
+        
+        .gallery-container::-webkit-scrollbar { height: 4px; }
+        .gallery-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+        .gallery-img {
+            width: 70px;
+            height: 70px;
+            object-fit: cover;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+
+        /* Buttons & Toast */
+        .btn-modern-primary { background-color: var(--primary); color: white; border-radius: var(--radius-sm); padding: 8px 18px; font-weight: 600; border: none; transition: 0.2s; }
+        .btn-modern-primary:hover { background-color: #4338ca; color:white; transform: translateY(-1px); }
+        .btn-modern-secondary { background-color: var(--primary-light); color: var(--primary); border-radius: var(--radius-sm); padding: 8px 18px; font-weight: 600; border: none; }
+        
+        .progress-btn { font-size: 0.65rem; font-weight: 700; padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border-color); background: #f8fafc; color: var(--text-muted); transition: 0.15s; }
+        .progress-btn:hover { background: var(--primary-light); color: var(--primary); border-color: var(--primary); }
+        
+        /* Tombol Progress Aktif Berwarna */
+        .progress-btn.active-status { background-color: var(--primary); color: white; border-color: var(--primary); }
+        .progress-btn.active-status.warning { background-color: var(--warning); border-color: var(--warning); }
+        .progress-btn.active-status.danger { background-color: var(--danger); border-color: var(--danger); }
+        .progress-btn.active-status.success { background-color: var(--success); border-color: var(--success); }
+
+        .action-btn { font-size: 0.65rem; font-weight: 700; padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border-color); background: #eff6ff; color: var(--primary); transition: 0.15s; cursor: pointer; width: 100%; margin-top: 8px; }
+        .action-btn:hover { background: var(--primary); color: white; }
+
+        .custom-toast { background-color: var(--text-main); color: white; padding: 12px 20px; border-radius: var(--radius-md); box-shadow: var(--shadow-md); display: flex; align-items: center; gap: 10px; font-size: 0.85rem; margin-bottom: 8px; animation: slideIn 0.3s forwards; z-index: 10000;}
+        @keyframes slideIn { from { transform: translateX(120%); } to { transform: translateX(0); } }
+        
+        /* Gaya Khusus untuk Logo Kustom */
+        .app-logo-container {
+            width: 42px;
+            height: 42px;
+            border-radius: 8px; /* Atur lengkungan sudut logo */
+            overflow: hidden; /* Memastikan logo pas di dalam wadah */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: transparent; /* Ubah jika logo Anda butuh background */
+        }
+        
+        .app-logo-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain; /* Memastikan rasio gambar logo terjaga */
+        }
+    </style>
+</head>
+<body>
+
+    <!-- TOAST CONTAINER -->
+    <div id="custom-toast-container" class="position-fixed top-0 end-0 p-3" style="z-index: 10000; max-width: 360px;"></div>
+
+    <!-- APP NAVBAR -->
+    <nav class="app-navbar d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <!-- LOGO AREA (Menggantikan Ikon Dashboard sebelumnya) -->
+            <div class="app-logo-container" id="logo-container">
+                <!-- GANTI URL PADA src="" DENGAN URL LOGO ANDA SENDIRI -->
+                <img src="need me studio.png" alt="App Logo" id="main-app-logo">
+            </div>
+            <div>
+                <h5 class="fw-bold m-0" style="letter-spacing: -0.02em;">Workspace Pro</h5>
+                <p class="text-muted m-0" style="font-size: 0.8rem;">Visual Kanban & SPV Feedback</p>
+            </div>
+        </div>
+
+        <div class="d-flex align-items-center gap-3 flex-wrap">
+            <div class="stat-card">
+                <div class="stat-icon" style="background-color: var(--primary-light); color: var(--primary);"><i data-lucide="activity" style="width:18px;"></i></div>
+                <div><div class="text-muted" style="font-size:0.7rem; font-weight:700;">TUGAS AKTIF</div><div class="fw-bold" id="stat-tasks-count" style="font-size:1.1rem; line-height:1;">0</div></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background-color: #dcfce3; color: var(--success);"><i data-lucide="check-circle" style="width:18px;"></i></div>
+                <div><div class="text-muted" style="font-size:0.7rem; font-weight:700;">TUGAS SELESAI</div><div class="fw-bold" id="stat-done-count" style="font-size:1.1rem; line-height:1;">0</div></div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- CONTENT WORKSPACE -->
+    <div class="container-fluid px-4 py-4">
+        
+        <div class="row align-items-center justify-content-between mb-4 g-3">
+            <div class="col-md-7">
+                <div class="d-flex align-items-center gap-2 flex-wrap" id="filter-container">
+                    <span class="text-muted me-2" style="font-size:0.85rem; font-weight:600;"><i data-lucide="filter" style="width: 14px;" class="me-1"></i> Filter:</span>
+                    <select id="filter-project" class="form-select form-select-sm border-0 shadow-sm" style="width: auto; font-weight: 600;" onchange="applyFilters()">
+                        <option value="All">Semua Proyek</option>
+                    </select>
+                    <select id="filter-member" class="form-select form-select-sm border-0 shadow-sm" style="width: auto; font-weight: 600;" onchange="applyFilters()">
+                        <option value="All">Semua Anggota</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-5 text-md-end">
+                <div class="d-flex gap-2 justify-content-md-end flex-wrap">
+                    <button class="btn-modern-secondary d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#manageDataModal">
+                        <i data-lucide="database" style="width: 16px;"></i> Kelola Data
+                    </button>
+                    <button class="btn-modern-primary d-flex align-items-center gap-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#taskModal">
+                        <i data-lucide="plus-circle" style="width: 16px;"></i> Tambah Tugas
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-12">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <div class="kanban-column" id="todo-col">
+                            <div class="column-title-area">
+                                <div class="d-flex align-items-center gap-2"><div class="rounded-circle" style="width:8px; height:8px; background-color: var(--primary)"></div><h6 class="m-0 fw-bold text-uppercase" style="font-size:0.85rem; color: var(--primary);">To Do</h6></div>
+                                <span class="column-badge" id="badge-todo">0</span>
+                            </div>
+                            <div class="cards-container h-100" id="todo-cards" data-status="To Do"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="kanban-column" id="inprogress-col">
+                            <div class="column-title-area">
+                                <div class="d-flex align-items-center gap-2"><div class="rounded-circle" style="width:8px; height:8px; background-color: var(--warning)"></div><h6 class="m-0 fw-bold text-uppercase" style="font-size:0.85rem; color: var(--warning);">In Progress</h6></div>
+                                <span class="column-badge" id="badge-inprogress">0</span>
+                            </div>
+                            <div class="cards-container h-100" id="inprogress-cards" data-status="In Progress"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="kanban-column" id="revisi-col">
+                            <div class="column-title-area">
+                                <div class="d-flex align-items-center gap-2"><div class="rounded-circle" style="width:8px; height:8px; background-color: var(--danger)"></div><h6 class="m-0 fw-bold text-uppercase" style="font-size:0.85rem; color: var(--danger);">Revisi</h6></div>
+                                <span class="column-badge" id="badge-revisi">0</span>
+                            </div>
+                            <div class="cards-container h-100" id="revisi-cards" data-status="Revisi"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="kanban-column" id="done-col">
+                            <div class="column-title-area">
+                                <div class="d-flex align-items-center gap-2"><div class="rounded-circle" style="width:8px; height:8px; background-color: var(--success)"></div><h6 class="m-0 fw-bold text-uppercase" style="font-size:0.85rem; color: var(--success);">Done</h6></div>
+                                <span class="column-badge" id="badge-done">0</span>
+                            </div>
+                            <div class="cards-container h-100" id="done-cards" data-status="Done"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL TINJAUAN & FEEDBACK SPV -->
+    <div class="modal fade" id="feedbackModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: var(--radius-lg);">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold">Tinjauan & Input Bukti</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="feedback-task-id">
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-warning" style="font-size:0.8rem;">Catatan SPV untuk Tugas Ini</label>
+                        <textarea id="feedback-spv-notes" class="form-control bg-warning-light border-warning" rows="3" placeholder="Tulis instruksi revisi atau feedback..."></textarea>
+                    </div>
+
+                    <!-- Input Gambar In Progress -->
+                    <div class="mb-3" id="input-group-inprogress" style="display:none;">
+                        <label class="form-label fw-bold text-primary" style="font-size:0.8rem;">URL Gambar: In Progress</label>
+                        <textarea id="feedback-img-inprogress" class="form-control border-primary" rows="2" placeholder="URL Gambar. Pisahkan dengan koma (,) atau Enter jika lebih dari 1 gambar" oninput="previewModalImage(this.value)"></textarea>
+                    </div>
+                    
+                    <!-- Input Gambar Revisi -->
+                    <div class="mb-3" id="input-group-revisi" style="display:none;">
+                        <label class="form-label fw-bold text-danger" style="font-size:0.8rem;">URL Gambar: Revisi</label>
+                        <textarea id="feedback-img-revisi" class="form-control border-danger" rows="2" placeholder="URL Gambar. Pisahkan dengan koma (,) atau Enter jika lebih dari 1 gambar" oninput="previewModalImage(this.value)"></textarea>
+                    </div>
+                    
+                    <!-- Input Gambar Done -->
+                    <div class="mb-3" id="input-group-done" style="display:none;">
+                        <label class="form-label fw-bold text-success" style="font-size:0.8rem;">URL Gambar: Done (Selesai)</label>
+                        <textarea id="feedback-img-done" class="form-control border-success" rows="2" placeholder="URL Gambar. Pisahkan dengan koma (,) atau Enter jika lebih dari 1 gambar" oninput="previewModalImage(this.value)"></textarea>
+                    </div>
+
+                    <!-- Info to-do -->
+                    <div class="mb-3 text-center" id="info-group-todo" style="display:none;">
+                        <small class="text-muted fst-italic">Penginputan gambar bukti baru dapat dilakukan ketika tugas berpindah ke kolom In Progress, Revisi, atau Done.</small>
+                    </div>
+
+                    <!-- Live Preview Image di Dalam Modal -->
+                    <div class="mb-3 text-center" id="modal-image-preview-container" style="display:none;">
+                        <label class="form-label fw-bold text-muted" style="font-size:0.75rem;">Preview Gambar Bukti</label><br>
+                        <div id="modal-image-preview-gallery" class="d-flex flex-wrap justify-content-center gap-2"></div>
+                    </div>
+
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn border" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn-modern-primary" onclick="saveFeedback()">Simpan Perubahan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL ZOOM GAMBAR KUSTOM -->
+    <div class="modal fade" id="imageZoomModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
+            <div class="modal-content bg-transparent border-0">
+                <div class="modal-header border-0 pb-0 justify-content-end">
+                    <button type="button" class="btn-close btn-close-white bg-light rounded-circle p-2" data-bs-dismiss="modal" aria-label="Close" style="opacity: 0.8;"></button>
+                </div>
+                <div class="modal-body text-center p-0 mt-2">
+                    <img id="zoomed-image" src="" class="img-fluid rounded shadow-lg" alt="Zoomed Bukti Pekerjaan" style="max-height: 85vh; border: 4px solid white;">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL KELOLA DATA -->
+    <div class="modal fade" id="manageDataModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: var(--radius-lg);">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold">Kelola Proyek & Anggota</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body row g-4 pt-3">
+                    <div class="col-md-6">
+                        <h6 class="fw-bold mb-3 border-bottom pb-2">Daftar Proyek</h6>
+                        <div class="d-flex gap-2 mb-3">
+                            <input type="text" id="new-project-input" class="form-control form-control-sm" placeholder="Nama proyek baru...">
+                            <button class="btn btn-sm btn-primary fw-bold" onclick="addProject()">Tambah</button>
+                        </div>
+                        <ul class="list-group" id="manage-projects-list" style="max-height: 250px; overflow-y: auto;"></ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="fw-bold mb-3 border-bottom pb-2">Daftar Anggota Tim</h6>
+                        <div class="d-flex gap-2 mb-3">
+                            <input type="text" id="new-member-input" class="form-control form-control-sm" placeholder="Nama anggota baru...">
+                            <button class="btn btn-sm btn-primary fw-bold" onclick="addMember()">Tambah</button>
+                        </div>
+                        <ul class="list-group" id="manage-members-list" style="max-height: 250px; overflow-y: auto;"></ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL TAMBAH TUGAS -->
+    <div class="modal fade" id="taskModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: var(--radius-lg);">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title fw-bold">Buat Tugas Baru</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold" style="font-size:0.8rem;">Nama Pekerjaan</label>
+                        <input type="text" id="modal-task-title" class="form-control py-2" placeholder="Tulis tugas spesifik..." required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold" style="font-size:0.8rem;">Kelompok Proyek</label>
+                        <select id="modal-task-project" class="form-select py-2"></select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold" style="font-size:0.8rem;">Anggota Tim (Penanggung Jawab)</label>
+                        <select id="modal-task-assignee" class="form-select py-2"></select>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label fw-bold" style="font-size:0.8rem;">Tanggal Mulai</label>
+                            <input type="datetime-local" id="modal-task-start-date" class="form-control py-2">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-bold" style="font-size:0.8rem;">Tenggat Waktu</label>
+                            <input type="datetime-local" id="modal-task-due-date" class="form-control py-2">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold" style="font-size:0.8rem;">Deskripsi Singkat</label>
+                        <textarea id="modal-task-desc" class="form-control" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn border" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn-modern-primary" onclick="submitNewTask()">Tambahkan ke Board</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // ==========================================
+        // KONFIGURASI BACKEND (GANTI DENGAN URL APPS SCRIPT ANDA)
+        // ==========================================
+        const GAS_WEBAPP_URL = "MASUKKAN_LINK_APPS_SCRIPT_ANDA_DI_SINI";
+        
+        let currentProjectFilter = 'All';
+        let currentMemberFilter = 'All';
+        const statusOrder = ['To Do', 'In Progress', 'Revisi', 'Done'];
+
+        const memberColors = {
+            'Aris S.': '#4f46e5', 'Budi H.': '#0ea5e9', 'Chandra W.': '#10b981', 
+            'Dewi A.': '#d946ef', 'Gerry M.': '#f59e0b', 'Rina F.': '#ec4899'
+        };
+
+        let workspaceState = {
+            projects: [],
+            members: [],
+            tasks: []
+        };
+
+        document.addEventListener("DOMContentLoaded", () => {
+            lucide.createIcons();
+            loadDataFromCloud();
+            setupDragAndDrop();
+        });
+
+        // --- SISTEM AUTO-CONVERTER GOOGLE DRIVE KE DIRECT THUMBNAIL IMAGE ---
+        function getDirectImageUrl(url) {
+            if (!url) return '';
+            let match = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+            if (match && match[1]) return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000`;
+            match = url.match(/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/);
+            if (match && match[1]) return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000`;
+            return url; 
+        }
+
+        function loadDataFromCloud() {
+            if (!GAS_WEBAPP_URL || GAS_WEBAPP_URL === "MASUKKAN_LINK_APPS_SCRIPT_ANDA_DI_SINI") {
+                if (localStorage.getItem('workspace_state')) {
+                    workspaceState = JSON.parse(localStorage.getItem('workspace_state'));
+                    renderAll();
+                }
+                return;
+            }
+
+            fetch(GAS_WEBAPP_URL, {
+                method: "POST",
+                headers: { "Content-Type": "text/plain" },
+                body: JSON.stringify({ action: "getData", targetSheet: "All" })
+            })
+            .then(res => res.json())
+            .then(result => {
+                if (result.status === "SUCCESS") {
+                    if (result.data.tasks) {
+                        workspaceState.tasks = result.data.tasks.map(r => ({
+                            id: r[0] || '', title: r[1] || '', desc: r[2] || '', project: r[3] || '',
+                            status: r[4] || 'To Do', startDate: r[5] || '', dueDate: r[6] || '',
+                            assignee: r[7] || '', spvNotes: r[8] || '', 
+                            imgInProgress: r[9] || '', imgRevisi: r[10] || '', imgDone: r[11] || ''
+                        })).filter(t => t.id !== '');
+                    }
+                    if (result.data.projects) {
+                        workspaceState.projects = result.data.projects.map(r => ({id: r[0], name: r[1]})).filter(p => p.id);
+                    }
+                    if (result.data.members) {
+                        workspaceState.members = result.data.members.map(r => ({id: r[0], name: r[1]})).filter(m => m.id);
+                    }
+                    renderAll();
+                }
+            })
+            .catch(err => console.warn('Gagal load dari cloud', err));
+        }
+
+        function showToast(message, type = 'error') {
+            const container = document.getElementById('custom-toast-container');
+            const toast = document.createElement('div');
+            toast.className = `custom-toast`;
+            let icon = type === 'error' ? '<i data-lucide="alert-triangle" class="text-danger"></i>' : '<i data-lucide="check-circle" class="text-success"></i>';
+            toast.style.borderLeft = type === 'error' ? "4px solid var(--danger)" : "4px solid var(--success)";
+            toast.innerHTML = `${icon} <span>${message}</span>`;
+            container.appendChild(toast);
+            lucide.createIcons();
+            setTimeout(() => {
+                toast.style.animation = 'slideIn 0.3s reverse';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function renderAll() {
+            renderFiltersAndSelects();
+            renderManageDataLists(); 
+            renderTasks();
+            updateStats();
+            localStorage.setItem('workspace_state', JSON.stringify(workspaceState));
+        }
+
+        function addProject() {
+            const name = document.getElementById('new-project-input').value.trim();
+            if (!name) return;
+            const id = 'P-' + Date.now();
+            workspaceState.projects.push({id, name});
+            document.getElementById('new-project-input').value = '';
+            renderAll();
+            syncWithCloud('addData', 'Proyek', [id, name]);
+            showToast('Proyek ditambahkan', 'success');
+        }
+
+        function addMember() {
+            const name = document.getElementById('new-member-input').value.trim();
+            if (!name) return;
+            const id = 'M-' + Date.now();
+            workspaceState.members.push({id, name});
+            document.getElementById('new-member-input').value = '';
+            renderAll();
+            syncWithCloud('addData', 'Anggota', [id, name]);
+            showToast('Anggota ditambahkan', 'success');
+        }
+
+        function deleteItem(type, id) {
+            if (type === 'project') {
+                workspaceState.projects = workspaceState.projects.filter(p => p.id !== id);
+                syncWithCloud('deleteData', 'Proyek', [id]);
+            } else {
+                workspaceState.members = workspaceState.members.filter(m => m.id !== id);
+                syncWithCloud('deleteData', 'Anggota', [id]);
+            }
+            renderAll();
+            showToast('Data dihapus', 'success');
+        }
+
+        function renderManageDataLists() {
+            const pList = document.getElementById('manage-projects-list');
+            const mList = document.getElementById('manage-members-list');
+            pList.innerHTML = ''; mList.innerHTML = '';
+
+            workspaceState.projects.forEach(p => {
+                pList.innerHTML += `<li class="list-group-item d-flex justify-content-between align-items-center p-2" style="font-size:0.85rem;">
+                    ${p.name} <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="deleteItem('project', '${p.id}')">Hapus</button></li>`;
+            });
+            workspaceState.members.forEach(m => {
+                mList.innerHTML += `<li class="list-group-item d-flex justify-content-between align-items-center p-2" style="font-size:0.85rem;">
+                    ${m.name} <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="deleteItem('member', '${m.id}')">Hapus</button></li>`;
+            });
+        }
+
+        function applyFilters() {
+            currentProjectFilter = document.getElementById('filter-project').value;
+            currentMemberFilter = document.getElementById('filter-member').value;
+            renderTasks();
+        }
+
+        function renderFiltersAndSelects() {
+            const fp = document.getElementById('filter-project');
+            const fm = document.getElementById('filter-member');
+            const tp = document.getElementById('modal-task-project');
+            const tm = document.getElementById('modal-task-assignee');
+            
+            fp.innerHTML = '<option value="All">Semua Proyek</option>';
+            fm.innerHTML = '<option value="All">Semua Anggota</option>';
+            tp.innerHTML = ''; tm.innerHTML = '';
+
+            workspaceState.projects.forEach(p => {
+                fp.innerHTML += `<option value="${p.name}">${p.name}</option>`;
+                tp.innerHTML += `<option value="${p.name}">${p.name}</option>`;
+            });
+            workspaceState.members.forEach(m => {
+                fm.innerHTML += `<option value="${m.name}">${m.name}</option>`;
+                tm.innerHTML += `<option value="${m.name}">${m.name}</option>`;
+            });
+            fp.value = currentProjectFilter; fm.value = currentMemberFilter;
+        }
+
+        function formatReadableDateTime(str) {
+            if (!str) return '-'; const dt = new Date(str); if (isNaN(dt.getTime())) return '-';
+            return `${String(dt.getDate()).padStart(2, '0')}/${String(dt.getMonth()+1).padStart(2, '0')}, ${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}`;
+        }
+
+        function getDeadlineStatus(dueDateStr, status) {
+            if (status === 'Done' || !dueDateStr) return null;
+            const now = new Date(), dueDate = new Date(dueDateStr);
+            if (now > dueDate) {
+                if (Math.ceil(Math.abs(now - dueDate) / (1000 * 60 * 60 * 24)) > 7) return { text: 'Ekspayer', className: 'bg-dark text-white' };
+                return { text: 'Terlambat', className: 'bg-danger text-white' };
+            } return null;
+        }
+
+        function getInitials(name) { return name ? name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase() : '?'; }
+
+        // Buka Zoom Gambar
+        function openImageModal(url) {
+            document.getElementById('zoomed-image').src = url;
+            new bootstrap.Modal(document.getElementById('imageZoomModal')).show();
+        }
+
+        // RENDER TASK CARDS
+        function renderTasks() {
+            const containers = { 'To Do': document.getElementById('todo-cards'), 'In Progress': document.getElementById('inprogress-cards'), 'Revisi': document.getElementById('revisi-cards'), 'Done': document.getElementById('done-cards') };
+            Object.values(containers).forEach(c => c.innerHTML = '');
+            let counts = { 'To Do': 0, 'In Progress': 0, 'Revisi': 0, 'Done': 0 };
+
+            workspaceState.tasks.forEach(task => {
+                if (currentProjectFilter !== 'All' && task.project !== currentProjectFilter) return;
+                if (currentMemberFilter !== 'All' && task.assignee !== currentMemberFilter) return;
+                counts[task.status]++;
+
+                const alert = getDeadlineStatus(task.dueDate, task.status);
+                let alertBadge = alert ? `<span class="badge ${alert.className} ms-1" style="font-size:0.6rem;">${alert.text}</span>` : '';
+                
+                // --- UPDATE: MENGHAPUS BATASAN PROGRESS (SEMUA BISA DIPILIH) ---
+                let progressButtons = `<div class="d-flex gap-1 flex-wrap mt-2">`;
+                const flow = ['To Do', 'In Progress', 'Revisi', 'Done'];
+                
+                flow.forEach(st => {
+                    if (task.status !== st) {
+                        let btnClass = "progress-btn";
+                        progressButtons += `<button class="${btnClass}" onclick="updateTaskStatus('${task.id}', '${st}')">${st}</button>`;
+                    } else {
+                        let btnClass = "progress-btn active-status";
+                        if (st === 'In Progress') btnClass += " warning";
+                        if (st === 'Revisi') btnClass += " danger";
+                        if (st === 'Done') btnClass += " success";
+                        progressButtons += `<button class="${btnClass}" disabled>${st}</button>`;
+                    }
+                });
+                progressButtons += `</div>`;
+
+                // Render Gambar Berdasarkan Status Saat Ini
+                let rawImg = '';
+                if (task.status === 'In Progress') rawImg = task.imgInProgress;
+                else if (task.status === 'Revisi') rawImg = task.imgRevisi;
+                else if (task.status === 'Done') rawImg = task.imgDone;
+
+                let imageHtml = '';
+                
+                if (rawImg && rawImg.trim() !== '') {
+                    // Pisahkan URL dengan koma atau baris baru
+                    const urls = rawImg.split(/[\n,]+/).map(u => u.trim()).filter(u => u !== '');
+                    
+                    if (urls.length === 1) {
+                        // Tampilan 1 Gambar Besar
+                        let currentImg = getDirectImageUrl(urls[0]);
+                        imageHtml = `<img src="${currentImg}" class="task-image task-image-clickable" onclick="openImageModal('${currentImg}')" alt="Bukti Pekerjaan" title="Klik untuk memperbesar" onerror="this.onerror=null; this.src='https://placehold.co/400x120?text=Gambar+Gagal+Dimuat';">`;
+                    } else if (urls.length > 1) {
+                        // Tampilan Galeri Banyak Gambar (Scroll Horizontal)
+                        imageHtml = `<div class="gallery-container">`;
+                        urls.forEach(url => {
+                            let currentImg = getDirectImageUrl(url);
+                            imageHtml += `<img src="${currentImg}" class="gallery-img task-image-clickable" onclick="openImageModal('${currentImg}')" alt="Bukti" title="Klik untuk memperbesar" onerror="this.onerror=null; this.src='https://placehold.co/70x70?text=Error';">`;
+                        });
+                        imageHtml += `</div>`;
+                    }
+                }
+                
+                let spvNotesHtml = '';
+                if (task.spvNotes) {
+                    spvNotesHtml = `<div class="spv-note-box"><strong>Catatan SPV (${task.status}):</strong><br/>${task.spvNotes}</div>`;
+                }
+
+                const card = document.createElement('div');
+                card.className = 'task-card'; card.setAttribute('draggable', 'true'); card.setAttribute('id', task.id);
+                card.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div><span class="project-tag bg-light text-primary border">${task.project}</span> ${alertBadge}</div>
+                        <button class="border-0 bg-transparent text-danger opacity-50" onclick="deleteTask('${task.id}')" style="font-size: 0.8rem;">✕</button>
+                    </div>
+                    
+                    ${imageHtml}
+                    
+                    <h6 class="fw-bold mb-1" style="font-size:0.9rem;">${task.title}</h6>
+                    <p class="text-muted mb-2" style="font-size:0.75rem; line-height:1.3;">${task.desc}</p>
+                    
+                    ${spvNotesHtml}
+                    
+                    <div class="border-top pt-2 d-flex align-items-center justify-content-between mb-1">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="member-avatar" style="background-color: ${memberColors[task.assignee]||'#64748b'};">${getInitials(task.assignee)}</div>
+                            <span class="text-muted" style="font-size: 0.7rem; font-weight:600;">${task.assignee}</span>
+                        </div>
+                    </div>
+                    <div class="text-muted mb-1" style="font-size: 0.65rem;">Mulai: <b class="text-dark">${formatReadableDateTime(task.startDate)}</b> | Batas: <b class="text-dark">${formatReadableDateTime(task.dueDate)}</b></div>
+                    <button class="action-btn" onclick="openFeedbackModal('${task.id}')"><i data-lucide="message-square-plus" style="width:12px;" class="me-1"></i> Tinjau & Input Bukti</button>
+                    ${progressButtons}
+                `;
+                card.addEventListener('dragstart', () => card.classList.add('dragging'));
+                card.addEventListener('dragend', () => card.classList.remove('dragging'));
+                containers[task.status].appendChild(card);
+            });
+            lucide.createIcons(); 
+
+            document.getElementById('badge-todo').textContent = counts['To Do'];
+            document.getElementById('badge-inprogress').textContent = counts['In Progress'];
+            document.getElementById('badge-revisi').textContent = counts['Revisi'];
+            document.getElementById('badge-done').textContent = counts['Done'];
+        }
+
+        function openFeedbackModal(taskId) {
+            const task = workspaceState.tasks.find(t => t.id === taskId);
+            if (!task) return;
+            
+            document.getElementById('feedback-task-id').value = task.id;
+            document.getElementById('feedback-spv-notes').value = task.spvNotes || '';
+            document.getElementById('feedback-img-inprogress').value = task.imgInProgress || '';
+            document.getElementById('feedback-img-revisi').value = task.imgRevisi || '';
+            document.getElementById('feedback-img-done').value = task.imgDone || '';
+            
+            document.getElementById('input-group-inprogress').style.display = 'none';
+            document.getElementById('input-group-revisi').style.display = 'none';
+            document.getElementById('input-group-done').style.display = 'none';
+            document.getElementById('info-group-todo').style.display = 'none';
+
+            let currentUrlToPreview = '';
+
+            if (task.status === 'In Progress') {
+                document.getElementById('input-group-inprogress').style.display = 'block';
+                currentUrlToPreview = task.imgInProgress;
+            } else if (task.status === 'Revisi') {
+                document.getElementById('input-group-revisi').style.display = 'block';
+                currentUrlToPreview = task.imgRevisi;
+            } else if (task.status === 'Done') {
+                document.getElementById('input-group-done').style.display = 'block';
+                currentUrlToPreview = task.imgDone;
+            } else if (task.status === 'To Do') {
+                document.getElementById('info-group-todo').style.display = 'block';
+            }
+
+            previewModalImage(currentUrlToPreview);
+
+            new bootstrap.Modal(document.getElementById('feedbackModal')).show();
+        }
+
+        function previewModalImage(urlsRaw) {
+            const previewContainer = document.getElementById('modal-image-preview-container');
+            const previewGallery = document.getElementById('modal-image-preview-gallery');
+            
+            if (urlsRaw && urlsRaw.trim() !== '') {
+                const urls = urlsRaw.split(/[\n,]+/).map(u => u.trim()).filter(u => u !== '');
+                previewGallery.innerHTML = '';
+                
+                urls.forEach(url => {
+                    let currentImg = getDirectImageUrl(url);
+                    previewGallery.innerHTML += `<img src="${currentImg}" class="img-fluid rounded shadow-sm border m-1" style="height: 100px; width: 100px; object-fit: cover;">`;
+                });
+                
+                previewContainer.style.display = 'block';
+            } else {
+                previewContainer.style.display = 'none';
+                previewGallery.innerHTML = '';
+            }
+        }
+
+        function saveFeedback() {
+            const taskId = document.getElementById('feedback-task-id').value;
+            const taskIndex = workspaceState.tasks.findIndex(t => t.id === taskId);
+            if (taskIndex !== -1) {
+                workspaceState.tasks[taskIndex].spvNotes = document.getElementById('feedback-spv-notes').value.trim();
+                workspaceState.tasks[taskIndex].imgInProgress = document.getElementById('feedback-img-inprogress').value.trim();
+                workspaceState.tasks[taskIndex].imgRevisi = document.getElementById('feedback-img-revisi').value.trim();
+                workspaceState.tasks[taskIndex].imgDone = document.getElementById('feedback-img-done').value.trim();
+                
+                renderAll();
+                bootstrap.Modal.getInstance(document.getElementById('feedbackModal')).hide();
+                showToast('Tinjauan dan Bukti berhasil disimpan', 'success');
+                
+                const t = workspaceState.tasks[taskIndex];
+                syncWithCloud('editData', 'Tugas', [t.id, t.title, t.desc, t.project, t.status, t.startDate, t.dueDate, t.assignee, t.spvNotes, t.imgInProgress, t.imgRevisi, t.imgDone]);
+            }
+        }
+
+        // --- UPDATE: FUNGSI BEBAS MUNDUR MAJU ---
+        function updateTaskStatus(taskId, newStatus) {
+            const task = workspaceState.tasks.find(t => t.id === taskId);
+            if (task && task.status !== newStatus) { // Hanya update jika status berubah
+                task.status = newStatus; 
+                renderAll();
+                syncWithCloud('editData', 'Tugas', [task.id, task.title, task.desc, task.project, task.status, task.startDate, task.dueDate, task.assignee, task.spvNotes || '', task.imgInProgress || '', task.imgRevisi || '', task.imgDone || '']);
+            }
+        }
+
+        function submitNewTask() {
+            const title = document.getElementById('modal-task-title').value.trim();
+            if (!title) return showToast('Nama pekerjaan wajib diisi!');
+            const id = 'T-' + Date.now();
+            const newTask = { 
+                id, title, 
+                desc: document.getElementById('modal-task-desc').value, 
+                project: document.getElementById('modal-task-project').value, 
+                assignee: document.getElementById('modal-task-assignee').value, 
+                status: 'To Do', 
+                startDate: document.getElementById('modal-task-start-date').value || new Date().toISOString().slice(0, 16), 
+                dueDate: document.getElementById('modal-task-due-date').value,
+                spvNotes: '', imgInProgress: '', imgRevisi: '', imgDone: ''
+            };
+            workspaceState.tasks.push(newTask);
+            bootstrap.Modal.getInstance(document.getElementById('taskModal')).hide();
+            renderAll(); showToast('Tugas ditambahkan', 'success');
+            syncWithCloud('addData', 'Tugas', [id, newTask.title, newTask.desc, newTask.project, 'To Do', newTask.startDate, newTask.dueDate, newTask.assignee, '', '', '', '']);
+        }
+
+        function deleteTask(id) {
+            workspaceState.tasks = workspaceState.tasks.filter(t => t.id !== id);
+            renderAll(); showToast('Tugas dihapus', 'success');
+            syncWithCloud('deleteData', 'Tugas', [id]);
+        }
+
+        function updateStats() { 
+            document.getElementById('stat-tasks-count').textContent = workspaceState.tasks.filter(t => t.status !== 'Done').length; 
+            document.getElementById('stat-done-count').textContent = workspaceState.tasks.filter(t => t.status === 'Done').length; 
+        }
+
+        function setupDragAndDrop() {
+            document.querySelectorAll('.kanban-column').forEach(col => {
+                col.addEventListener('dragover', e => { e.preventDefault(); col.classList.add('drag-over'); });
+                col.addEventListener('dragleave', () => col.classList.remove('drag-over'));
+                col.addEventListener('drop', e => {
+                    e.preventDefault(); col.classList.remove('drag-over');
+                    const draggingCard = document.querySelector('.dragging');
+                    if (!draggingCard) return;
+                    const newStatus = col.querySelector('.cards-container').getAttribute('data-status');
+                    updateTaskStatus(draggingCard.getAttribute('id'), newStatus);
+                });
+            });
+        }
+
+        function syncWithCloud(action, sheetName, rowData) {
+            if (!GAS_WEBAPP_URL || GAS_WEBAPP_URL === "MASUKKAN_LINK_APPS_SCRIPT_ANDA_DI_SINI") return;
+            fetch(GAS_WEBAPP_URL, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ action, targetSheet: sheetName, rowData }) })
+            .catch(err => console.warn('Cloud sync gagal', err));
+        }
+    </script>
+</body>
+</html>
